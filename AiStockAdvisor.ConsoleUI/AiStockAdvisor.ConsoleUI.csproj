@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AiStockAdvisor.Domain\AiStockAdvisor.Domain.csproj" />
+    <ProjectReference Include="..\AiStockAdvisor.Application\AiStockAdvisor.Application.csproj" />
+    <ProjectReference Include="..\AiStockAdvisor.Infrastructure\AiStockAdvisor.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="YuantaOneAPI">
+      <HintPath>..\..\YuantaOneAPI.dll</HintPath>
+      <Private>True</Private> 
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\YuantaCAPIDLL64.dll">
+      <Link>YuantaCAPIDLL64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\APICOMCHECK64.dll">
+      <Link>APICOMCHECK64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\..\*.pfx">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Try to copy config if exists, though filename might vary -->
+  </ItemGroup>
+
+</Project>

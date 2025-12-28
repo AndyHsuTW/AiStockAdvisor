@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- xUnit 2.5+ supports net48. Need to ensure package versions are compatible. -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="NSubstitute" Version="5.1.0" /> 
+    <!-- NSubstitute is great for TDD mocking -->
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="YuantaOneAPI">
+      <HintPath>..\..\YuantaOneAPI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AiStockAdvisor.Domain\AiStockAdvisor.Domain.csproj" />
+    <ProjectReference Include="..\AiStockAdvisor.Application\AiStockAdvisor.Application.csproj" />
+    <ProjectReference Include="..\AiStockAdvisor.Infrastructure\AiStockAdvisor.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

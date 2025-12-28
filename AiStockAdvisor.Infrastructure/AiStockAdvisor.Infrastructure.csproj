@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AiStockAdvisor.Domain\AiStockAdvisor.Domain.csproj" />
+    <ProjectReference Include="..\AiStockAdvisor.Application\AiStockAdvisor.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="YuantaOneAPI">
+      <HintPath>..\..\YuantaOneAPI.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.3.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+</Project>
