@@ -19,6 +19,29 @@ namespace AiStockAdvisor.Tests.Infrastructure
             _client = new YuantaBrokerClient(_adapter);
         }
 
+        private static DateTime GetTaipeiTradeDate()
+        {
+            try
+            {
+                TimeZoneInfo tz;
+                try
+                {
+                    tz = TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+                }
+                catch
+                {
+                    tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Taipei");
+                }
+
+                var nowTaipei = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+                return nowTaipei.Date;
+            }
+            catch
+            {
+                return DateTime.Now.Date;
+            }
+        }
+
         [Fact]
         public void Login_ShouldCallOpenAndLoginOnAdapter()
         {
@@ -118,8 +141,11 @@ namespace AiStockAdvisor.Tests.Infrastructure
             // Assert
             Assert.NotNull(receivedTick);
             Assert.Equal("2330", receivedTick.Symbol);
+            Assert.Equal((int)enumMarketType.TWSE, receivedTick.MarketNo);
             Assert.Equal(123.45m, receivedTick.Price);
             Assert.Equal(10, receivedTick.Volume);
+            Assert.Equal(1, receivedTick.SerialNo);
+            Assert.Equal(GetTaipeiTradeDate(), receivedTick.TradeDate);
             Assert.Equal(DateTime.Today.Year, receivedTick.Time.Year);
             Assert.Equal(10, receivedTick.Time.Hour);
         }

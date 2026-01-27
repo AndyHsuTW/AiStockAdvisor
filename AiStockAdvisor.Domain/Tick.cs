@@ -7,6 +7,7 @@ namespace AiStockAdvisor.Domain
     /// </summary>
     public class Tick
     {
+        public int MarketNo { get; }
         /// <summary>
         /// 股票代碼。
         /// </summary>
@@ -16,6 +17,10 @@ namespace AiStockAdvisor.Domain
         /// 成交時間。
         /// </summary>
         public DateTime Time { get; }
+
+        public DateTime TradeDate { get; }
+
+        public int SerialNo { get; }
 
         /// <summary>
         /// 成交價格。
@@ -36,8 +41,22 @@ namespace AiStockAdvisor.Domain
         /// <param name="volume">成交單量。</param>
         public Tick(string symbol, DateTime time, decimal price, decimal volume)
         {
+            MarketNo = 0;
             Symbol = symbol;
             Time = time;
+            TradeDate = time.Date;
+            SerialNo = 0;
+            Price = price;
+            Volume = volume;
+        }
+
+        public Tick(string symbol, DateTime time, decimal price, decimal volume, int marketNo, int serialNo, DateTime tradeDate)
+        {
+            MarketNo = marketNo;
+            Symbol = symbol;
+            Time = time;
+            TradeDate = tradeDate.Date;
+            SerialNo = serialNo;
             Price = price;
             Volume = volume;
         }

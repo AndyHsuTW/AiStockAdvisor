@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
 using AiStockAdvisor.Domain;
+using AiStockAdvisor.Logging;
 using AiStockAdvisor.Application.Interfaces;
 using AiStockAdvisor.Infrastructure.Yuanta.DataStructs;
 using YuantaOneAPI;
@@ -64,6 +65,43 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
         }
 
         private const enumEnvironmentMode DefaultEnvironmentMode = enumEnvironmentMode.PROD;
+        private static readonly TimeZoneInfo TaipeiTimeZone = ResolveTaipeiTimeZone();
+
+        private static TimeZoneInfo ResolveTaipeiTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Taipei Standard Time");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+            }
+            catch (InvalidTimeZoneException)
+            {
+            }
+
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Taipei");
+            }
+            catch
+            {
+                return TimeZoneInfo.Local;
+            }
+        }
+
+        private static DateTime GetTaipeiTradeDate()
+        {
+            try
+            {
+                var nowTaipei = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TaipeiTimeZone);
+                return nowTaipei.Date;
+            }
+            catch
+            {
+                return DateTime.Now.Date;
+            }
+        }
 
         private static bool IsConnectedMessage(string? message)
         {
@@ -138,11 +176,12 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
 
         private void _trader_OnResponse(int intMark, uint dwIndex, string strIndex, object objHandle, object objValue)
         {
+            using var _ = LogScope.EnsureFlow();
             // Mirror the sample project behavior: surface system/RQ responses for troubleshooting.
             if (intMark == 0)
             {
                 var msg = Convert.ToString(objValue);
-                _logger?.LogInformation($"[Yuanta API] System: {msg}");
+                _logger?.LogInformation(LogScope.FormatMessage($"[Yuanta API] System: {msg}"));
 
                 if (IsConnectedMessage(msg))
                 {
@@ -176,16 +215,16 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
                     _lastLoginCount = count;
                     _isLoggedIn = msgCode == "0001" || msgCode == "00001";
                     _loginEvent.Set();
-                    _logger?.LogInformation($"[Yuanta API] Login response: Code={msgCode}, Msg={msgContent}, Count={count}");
+                    _logger?.LogInformation(LogScope.FormatMessage($"[Yuanta API] Login response: Code={msgCode}, Msg={msgContent}, Count={count}"));
                 }
                 else
                 {
-                    _logger?.LogInformation($"[Yuanta API] Login response received (length={bytes.Length}).");
+                    _logger?.LogInformation(LogScope.FormatMessage($"[Yuanta API] Login response received (length={bytes.Length})."));
                 }
             }
             else if (intMark == 1 && string.IsNullOrWhiteSpace(strIndex))
             {
-                _logger?.LogError($"[Yuanta API] RQ/RP error: {Convert.ToString(objValue)}");
+                _logger?.LogError(LogScope.FormatMessage($"[Yuanta API] RQ/RP error: {Convert.ToString(objValue)}"));
             }
 
             // Subscription responses (Quote stream). If strIndex is empty, it's an error per official sample.
@@ -193,7 +232,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             {
                 if (string.IsNullOrWhiteSpace(strIndex))
                 {
-                    _logger?.LogError($"[Yuanta API] Subscribe error: {Convert.ToString(objValue)}");
+                    _logger?.LogError(LogScope.FormatMessage($"[Yuanta API] Subscribe error: {Convert.ToString(objValue)}"));
                 }
                 else if (objValue is byte[] bytes)
                 {
@@ -206,7 +245,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
 
                     if (shouldLog)
                     {
-                        _logger?.LogInformation($"[Yuanta API] Subscribe callback: Index={key}, Length={bytes.Length}");
+                        _logger?.LogInformation(LogScope.FormatMessage($"[Yuanta API] Subscribe callback: Index={key}, Length={bytes.Length}"));
                     }
                 }
                 else
@@ -220,7 +259,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
 
                     if (shouldLog)
                     {
-                        _logger?.LogInformation($"[Yuanta API] Subscribe callback: Index={key}, Type={objValue?.GetType().FullName ?? "<null>"}");
+                        _logger?.LogInformation(LogScope.FormatMessage($"[Yuanta API] Subscribe callback: Index={key}, Type={objValue?.GetType().FullName ?? "<null>"}"));
                     }
                 }
             }
@@ -241,16 +280,16 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
                 // The official sample uses YuantaDataHelper to read fields sequentially.
                 // Values in the live stream are in big-endian (network order) for numeric fields;
                 // marshaling into a struct on little-endian Windows produces values like 0x01000000.
-                if (!TryParseStockTick210104010(data, out var symbol, out var time, out var dealPriceRaw, out var dealVolRaw, out var serialNo, out var key))
+                if (!TryParseStockTick210104010(data, out var symbol, out var time, out var dealPriceRaw, out var dealVolRaw, out var serialNoRaw, out var key, out var marketNo))
                 {
-                    _logger?.LogError($"[YuantaBrokerClient] Tick parse failed (len={data?.Length ?? 0}).");
+                    _logger?.LogError(LogScope.FormatMessage($"[YuantaBrokerClient] Tick parse failed (len={data?.Length ?? 0})."));
                     return;
                 }
 
                 // De-duplicate exact repeated ticks.
                 // In practice, quote servers may resend the last tick (e.g. during idle/after-hours or on reconnect).
                 // Use serialNo when available; otherwise fall back to (time, priceRaw, volRaw).
-                var signature = new TickSignature(serialNo, key, time, dealPriceRaw, dealVolRaw);
+                var signature = new TickSignature(serialNoRaw, key, time, dealPriceRaw, dealVolRaw);
                 lock (_dedupeLock)
                 {
                     if (_lastTickBySymbol.TryGetValue(symbol, out var last) && last.Equals(signature))
@@ -267,19 +306,23 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
                 decimal price = NormalizePrice(dealPriceRaw);
                 decimal volume = dealVolRaw;
 
-                var tick = new Tick(symbol, time, price, volume);
+                int serialNo = serialNoRaw == uint.MaxValue ? -1 : unchecked((int)serialNoRaw);
+                DateTime tradeDate = GetTaipeiTradeDate();
+                var tick = new Tick(symbol, time, price, volume, marketNo, serialNo, tradeDate);
                 
                 OnTickReceived?.Invoke(tick);
 
                 // Log in a clear JSON shape for downstream parsing/diagnostics.
                 // Example: {"stockNo":"2327","price":222.00,"vol":1,"serialNo":123,"key":"..."}
+                var identityJson = LogIdentity.ForTick(tradeDate, marketNo, symbol, serialNo).ToJson();
+                var identityBody = identityJson.Length > 2 ? identityJson.Substring(1, identityJson.Length - 2) : string.Empty;
                 var tickJson =
-                    $"{{\"stockNo\":\"{symbol}\",\"price\":{price.ToString("0.00", CultureInfo.InvariantCulture)},\"vol\":{dealVolRaw},\"serialNo\":{serialNo},\"key\":\"{key}\",\"tickTime\":\"{time:HH:mm:ss.fff}\"}}";
-                _logger?.LogInformation($"[YuantaBrokerClient] Tick: {tickJson}");
+                    $"{{{identityBody},\"stockNo\":\"{symbol}\",\"price\":{price.ToString("0.00", CultureInfo.InvariantCulture)},\"vol\":{dealVolRaw},\"key\":\"{key}\",\"tickTime\":\"{time:HH:mm:ss.fff}\"}}";
+                _logger?.LogInformation(LogScope.FormatMessage($"[YuantaBrokerClient] Tick: {tickJson}"));
             }
             catch (Exception ex)
             {
-                _logger?.LogError($"[YuantaBrokerClient] Error parsing tick", ex);
+                _logger?.LogError(LogScope.FormatMessage($"[YuantaBrokerClient] Error parsing tick"), ex);
             }
         }
 
@@ -349,7 +392,8 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             out int dealPrice,
             out int dealVol,
             out uint serialNo,
-            out string key)
+            out string key,
+            out int marketNo)
         {
             symbol = string.Empty;
             time = DateTime.MinValue;
@@ -357,6 +401,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             dealVol = 0;
             serialNo = 0;
             key = string.Empty;
+            marketNo = 0;
 
             if (data == null || data.Length < 62) return false;
 
@@ -369,7 +414,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             offset += 22;
 
             // byMarketNo (1)
-            offset += 1;
+            marketNo = data[offset++];
 
             // abyStkCode (12)
             var codeBytes = new byte[12];
@@ -452,7 +497,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
         public void Login(string username, string password)
         {
             var envMode = DefaultEnvironmentMode;
-            _logger?.LogInformation($"[YuantaBrokerClient] Connecting to Yuanta API ({envMode})... PopUpMsg={_popUpMsg}");
+            _logger?.LogInformation(LogScope.FormatMessage($"[YuantaBrokerClient] Connecting to Yuanta API ({envMode})... PopUpMsg={_popUpMsg}"));
 
             // Set environment first
             _trader.Open(envMode);
@@ -463,11 +508,11 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             {
                 if (!_connectedEvent.Wait(TimeSpan.FromSeconds(15)))
                 {
-                    _logger.LogError("[YuantaBrokerClient] Timed out waiting for Yuanta host connection.");
+                    _logger.LogError(LogScope.FormatMessage("[YuantaBrokerClient] Timed out waiting for Yuanta host connection."));
                 }
             }
             
-            _logger?.LogInformation($"[YuantaBrokerClient] logging in as User: {username}...");
+            _logger?.LogInformation(LogScope.FormatMessage($"[YuantaBrokerClient] logging in as User: {username}..."));
 
             // Reset login state for this attempt
             _isLoggedIn = false;
@@ -476,24 +521,24 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             
             if (loginSuccess)
             {
-                _logger?.LogInformation("[YuantaBrokerClient] Login successfully initiated.");
+                _logger?.LogInformation(LogScope.FormatMessage("[YuantaBrokerClient] Login successfully initiated."));
 
                 // Wait for the Login RQ response so downstream operations (Subscribe) don't race.
                 if (_logger != null)
                 {
                     if (!_loginEvent.Wait(TimeSpan.FromSeconds(15)))
                     {
-                        _logger.LogError("[YuantaBrokerClient] Timed out waiting for Login response.");
+                        _logger.LogError(LogScope.FormatMessage("[YuantaBrokerClient] Timed out waiting for Login response."));
                     }
                     else if (!_isLoggedIn)
                     {
-                        _logger.LogError($"[YuantaBrokerClient] Login rejected: Code={_lastLoginMsgCode}, Msg={_lastLoginMsgContent}");
+                        _logger.LogError(LogScope.FormatMessage($"[YuantaBrokerClient] Login rejected: Code={_lastLoginMsgCode}, Msg={_lastLoginMsgContent}"));
                     }
                 }
             }
             else
             {
-                _logger?.LogError("[YuantaBrokerClient] Login failed to initiate. Please check system status.");
+                _logger?.LogError(LogScope.FormatMessage("[YuantaBrokerClient] Login failed to initiate. Please check system status."));
                 // Depending on requirement, might throw exception or just log
             }
         }
@@ -503,7 +548,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
         {
             if (_logger != null && !_isLoggedIn)
             {
-                _logger.LogError("[YuantaBrokerClient] Subscribe blocked: not logged in yet.");
+                _logger.LogError(LogScope.FormatMessage("[YuantaBrokerClient] Subscribe blocked: not logged in yet."));
                 return;
             }
 
@@ -511,15 +556,15 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             // Subscribing before quote host is connected can fail with "執行異常".
             if (_requiresQuoteConnection && !_isQuoteConnected)
             {
-                _logger?.LogInformation("[YuantaBrokerClient] Waiting for quote server connection before subscribing...");
+                _logger?.LogInformation(LogScope.FormatMessage("[YuantaBrokerClient] Waiting for quote server connection before subscribing..."));
                 if (!_quoteConnectedEvent.Wait(TimeSpan.FromSeconds(15)))
                 {
-                    _logger?.LogError("[YuantaBrokerClient] Subscribe blocked: quote server not connected yet.");
+                    _logger?.LogError(LogScope.FormatMessage("[YuantaBrokerClient] Subscribe blocked: quote server not connected yet."));
                     return;
                 }
             }
 
-            _logger?.LogInformation($"[YuantaBrokerClient] Subscribing to {symbol}...");
+            _logger?.LogInformation(LogScope.FormatMessage($"[YuantaBrokerClient] Subscribing to {symbol}..."));
             
             var list = new List<StockTick>();
             var tick = new StockTick
@@ -540,7 +585,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             }
             catch (Exception ex)
             {
-                _logger?.LogError("[YuantaBrokerClient] Error while closing Yuanta API", ex);
+                _logger?.LogError(LogScope.FormatMessage("[YuantaBrokerClient] Error while closing Yuanta API"), ex);
             }
 
             try
@@ -549,7 +594,7 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             }
             catch (Exception ex)
             {
-                _logger?.LogError("[YuantaBrokerClient] Error while disposing Yuanta API", ex);
+                _logger?.LogError(LogScope.FormatMessage("[YuantaBrokerClient] Error while disposing Yuanta API"), ex);
             }
         }
     }

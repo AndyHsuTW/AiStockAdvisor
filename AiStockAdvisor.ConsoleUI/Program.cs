@@ -5,6 +5,7 @@ using AiStockAdvisor.Infrastructure.Yuanta;
 using AiStockAdvisor.Infrastructure.Logging;
 using AiStockAdvisor.Application.Services;
 using AiStockAdvisor.Application.Interfaces;
+using AiStockAdvisor.Logging;
 
 namespace AiStockAdvisor.ConsoleUI
 {
@@ -25,6 +26,8 @@ namespace AiStockAdvisor.ConsoleUI
 
             try
             {
+                using var _ = LogScope.BeginFlow();
+
                 // Dependency Injection Setup
                 // Using 'using' block or explicit Dispose to ensure logs are flushed
                 using (var logger = new FileLogger()) 

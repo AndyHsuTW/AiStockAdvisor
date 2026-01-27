@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AiStockAdvisor.Domain;
 using AiStockAdvisor.Application.Interfaces;
+using AiStockAdvisor.Logging;
 
 namespace AiStockAdvisor.Application.Services
 {
@@ -33,7 +34,7 @@ namespace AiStockAdvisor.Application.Services
 
         public void OnBar(KBar bar)
         {
-            _logger.LogInformation($"[{Name}] Received Bar: {bar}");
+            _logger.LogInformation(LogScope.FormatMessage($"[{Name}] Received Bar: {bar}"));
             
             _closePrices.Add(bar.Close);
 
@@ -43,16 +44,16 @@ namespace AiStockAdvisor.Application.Services
                 var shortMa = CalculateMa(_shortPeriod);
                 var longMa = CalculateMa(_longPeriod);
                 
-                _logger.LogInformation($"[{Name}] MA{_shortPeriod}: {shortMa:F2}, MA{_longPeriod}: {longMa:F2}");
+                _logger.LogInformation(LogScope.FormatMessage($"[{Name}] MA{_shortPeriod}: {shortMa:F2}, MA{_longPeriod}: {longMa:F2}"));
 
                 // Logic: Golden Cross logic could go here
                 if (shortMa > longMa)
                 {
-                    _logger.LogInformation($"[{Name}] Signal: BULLISH (MA{_shortPeriod} > MA{_longPeriod})");
+                    _logger.LogInformation(LogScope.FormatMessage($"[{Name}] Signal: BULLISH (MA{_shortPeriod} > MA{_longPeriod})"));
                 }
                 else
                 {
-                    _logger.LogInformation($"[{Name}] Signal: BEARISH (MA{_shortPeriod} < MA{_longPeriod})");
+                    _logger.LogInformation(LogScope.FormatMessage($"[{Name}] Signal: BEARISH (MA{_shortPeriod} < MA{_longPeriod})"));
                 }
             }
         }

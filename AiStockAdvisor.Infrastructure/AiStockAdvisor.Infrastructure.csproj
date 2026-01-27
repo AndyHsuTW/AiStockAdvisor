@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AiStockAdvisor.Domain\AiStockAdvisor.Domain.csproj" />
     <ProjectReference Include="..\AiStockAdvisor.Application\AiStockAdvisor.Application.csproj" />
+    <ProjectReference Include="..\AiStockAdvisor.Logging\AiStockAdvisor.Logging.csproj" />
   </ItemGroup>
 
   <ItemGroup>
