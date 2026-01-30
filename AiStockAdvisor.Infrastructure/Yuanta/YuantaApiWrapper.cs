@@ -58,6 +58,18 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
         }
 
         /// <inheritdoc />
+        public void SubscribeFiveTickA(List<FiveTickA> reqList)
+        {
+            _trader.SubscribeFiveTickA(reqList);
+        }
+
+        /// <inheritdoc />
+        public void UnsubscribeFivetickA(List<FiveTickA> reqList)
+        {
+            _trader.UnsubscribeFivetickA(reqList);
+        }
+
+        /// <inheritdoc />
         public void Close()
         {
             _trader.Close();

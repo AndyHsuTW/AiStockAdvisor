@@ -44,6 +44,7 @@ JSON Object (raw fields + optional derived fields)
     "msec": 345
   },
   "tickTimeText": "13:45:12.345",
+  "tradeDate": "2025-01-08",
   "buyPriceRaw": 22250,
   "sellPriceRaw": 22260,
   "dealPriceRaw": 22250,
@@ -57,6 +58,7 @@ JSON Object (raw fields + optional derived fields)
 ```
 
 Notes
-- tickTimeText uses local date implicitly; the raw payload does not include a trade date. If a date is needed, inject tradeDate from the trading session context and produce an ISO-8601 string.
+- tickTimeText uses local date implicitly; the raw payload does not include a trade date.
+- In this project, the actual trade date is derived by GetTaipeiTradeDate() (Taipei time zone) and injected when building Tick / log JSON. If a date is needed in JSON, use that injected tradeDate (YYYY-MM-DD) or produce an ISO-8601 string from it.
 - dealPrice is optional and is derived from dealPriceRaw using the same normalization rule as the application (raw / 100 or raw / 10000).
 - dealVol is optional and mirrors dealVolRaw when you want a normalized numeric type for downstream systems.

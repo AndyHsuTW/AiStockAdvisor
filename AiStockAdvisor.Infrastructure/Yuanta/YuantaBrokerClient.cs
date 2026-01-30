@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using AiStockAdvisor.Domain;
 using AiStockAdvisor.Logging;
@@ -37,6 +38,9 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
 
         /// <inheritdoc />
         public event Action<Tick>? OnTickReceived;
+
+        /// <inheritdoc />
+        public event Action<Best5Quote>? OnBest5Received;
 
         /// <summary>
         /// 初始化 <see cref="YuantaBrokerClient"/> 類別的新執行個體。
@@ -100,6 +104,18 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             catch
             {
                 return DateTime.Now.Date;
+            }
+        }
+
+        private static DateTime GetTaipeiNow()
+        {
+            try
+            {
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TaipeiTimeZone);
+            }
+            catch
+            {
+                return DateTime.Now;
             }
         }
 
@@ -269,6 +285,40 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
                 objValue is byte[] data)
             {
                 ParseStockTick(data);
+            }
+
+            if (intMark == 2 &&
+                string.Equals(strIndex?.Trim(), "210.10.60.10", StringComparison.OrdinalIgnoreCase) &&
+                objValue is byte[] best5Data)
+            {
+                ParseBest5(best5Data);
+            }
+        }
+
+        private void ParseBest5(byte[] data)
+        {
+            try
+            {
+                if (!TryParseBest5(data, out var quote))
+                {
+                    _logger?.LogError(LogScope.FormatMessage($"[YuantaBrokerClient] Best5 parse failed (len={data?.Length ?? 0})."));
+                    return;
+                }
+
+                OnBest5Received?.Invoke(quote);
+
+                var identityJson = LogIdentity.ForNonTick().ToJson();
+                var identityBody = identityJson.Length > 2 ? identityJson.Substring(1, identityJson.Length - 2) : string.Empty;
+                var best5Json =
+                    $"{{{identityBody},\"stockNo\":\"{quote.Symbol}\",\"marketNo\":{quote.MarketNo}," +
+                    $"\"bidPrices\":[{JoinPrices(quote.Bids)}],\"bidVols\":[{JoinVolumes(quote.Bids)}]," +
+                    $"\"askPrices\":[{JoinPrices(quote.Asks)}],\"askVols\":[{JoinVolumes(quote.Asks)}]," +
+                    $"\"quoteTime\":\"{quote.ReceivedAt:HH:mm:ss.fff}\"}}";
+                _logger?.LogInformation(LogScope.FormatMessage($"[YuantaBrokerClient] Best5: {best5Json}"));
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(LogScope.FormatMessage("[YuantaBrokerClient] Error parsing best5"), ex);
             }
         }
 
@@ -451,6 +501,109 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             return !string.IsNullOrWhiteSpace(symbol);
         }
 
+        private static bool TryParseBest5(byte[] data, out Best5Quote quote)
+        {
+            quote = null!;
+            if (data == null || data.Length < 36) return false;
+
+            int offset = 0;
+
+            // abyKey (22)
+            offset += 22;
+
+            // byMarketNo (1)
+            int marketNo = data[offset++];
+
+            // abyStkCode (12)
+            var codeBytes = new byte[12];
+            Buffer.BlockCopy(data, offset, codeBytes, 0, 12);
+            offset += 12;
+
+            // byIndexFlag (1)
+            byte indexFlag = data[offset++];
+
+            // Only handle index 50 (full 5x5 snapshot) for now.
+            if (indexFlag != 50)
+            {
+                return false;
+            }
+
+            const int levels = 5;
+            const int payloadBytes = levels * 4 * 4; // 5 buy price + 5 buy vol + 5 sell price + 5 sell vol
+            if (data.Length < offset + payloadBytes) return false;
+
+            var bidPrices = new decimal[levels];
+            var bidVolumes = new long[levels];
+            var askPrices = new decimal[levels];
+            var askVolumes = new long[levels];
+
+            for (int i = 0; i < levels; i++)
+            {
+                int raw = ReadInt32BE(data, offset);
+                offset += 4;
+                bidPrices[i] = NormalizePrice(raw);
+            }
+
+            for (int i = 0; i < levels; i++)
+            {
+                uint raw = ReadUInt32BE(data, offset);
+                offset += 4;
+                bidVolumes[i] = raw;
+            }
+
+            for (int i = 0; i < levels; i++)
+            {
+                int raw = ReadInt32BE(data, offset);
+                offset += 4;
+                askPrices[i] = NormalizePrice(raw);
+            }
+
+            for (int i = 0; i < levels; i++)
+            {
+                uint raw = ReadUInt32BE(data, offset);
+                offset += 4;
+                askVolumes[i] = raw;
+            }
+
+            var bids = new OrderBookLevel[levels];
+            var asks = new OrderBookLevel[levels];
+            for (int i = 0; i < levels; i++)
+            {
+                bids[i] = new OrderBookLevel(bidPrices[i], bidVolumes[i]);
+                asks[i] = new OrderBookLevel(askPrices[i], askVolumes[i]);
+            }
+
+            string symbol = DecodeNullTerminatedAscii(codeBytes);
+            if (string.IsNullOrWhiteSpace(symbol)) return false;
+
+            quote = new Best5Quote(symbol, marketNo, GetTaipeiNow(), bids, asks);
+            return true;
+        }
+
+        private static string JoinPrices(OrderBookLevel[] levels)
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < levels.Length; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append(levels[i].Price.ToString("0.00", CultureInfo.InvariantCulture));
+            }
+
+            return sb.ToString();
+        }
+
+        private static string JoinVolumes(OrderBookLevel[] levels)
+        {
+            var sb = new StringBuilder();
+            for (int i = 0; i < levels.Length; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append(levels[i].Volume.ToString(CultureInfo.InvariantCulture));
+            }
+
+            return sb.ToString();
+        }
+
         private static string DecodeNullTerminatedAscii(byte[] bytes)
         {
             if (bytes == null || bytes.Length == 0) return string.Empty;
@@ -575,6 +728,72 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
             list.Add(tick);
 
             _trader.SubscribeStockTick(list);
+        }
+
+        /// <inheritdoc />
+        public void SubscribeBest5(string symbol)
+        {
+            if (_logger != null && !_isLoggedIn)
+            {
+                _logger.LogError(LogScope.FormatMessage("[YuantaBrokerClient] SubscribeBest5 blocked: not logged in yet."));
+                return;
+            }
+
+            if (_requiresQuoteConnection && !_isQuoteConnected)
+            {
+                _logger?.LogInformation(LogScope.FormatMessage("[YuantaBrokerClient] Waiting for quote server connection before subscribing best5..."));
+                if (!_quoteConnectedEvent.Wait(TimeSpan.FromSeconds(15)))
+                {
+                    _logger?.LogError(LogScope.FormatMessage("[YuantaBrokerClient] SubscribeBest5 blocked: quote server not connected yet."));
+                    return;
+                }
+            }
+
+            _logger?.LogInformation(LogScope.FormatMessage($"[YuantaBrokerClient] Subscribing best5 to {symbol}..."));
+
+            var list = new List<FiveTickA>
+            {
+                new FiveTickA
+                {
+                    MarketNo = (byte)enumMarketType.TWSE,
+                    StockCode = symbol
+                }
+            };
+
+            _trader.SubscribeFiveTickA(list);
+        }
+
+        /// <inheritdoc />
+        public void UnsubscribeBest5(string symbol)
+        {
+            if (_logger != null && !_isLoggedIn)
+            {
+                _logger.LogError(LogScope.FormatMessage("[YuantaBrokerClient] UnsubscribeBest5 blocked: not logged in yet."));
+                return;
+            }
+
+            if (_requiresQuoteConnection && !_isQuoteConnected)
+            {
+                _logger?.LogInformation(LogScope.FormatMessage("[YuantaBrokerClient] Waiting for quote server connection before unsubscribing best5..."));
+                if (!_quoteConnectedEvent.Wait(TimeSpan.FromSeconds(15)))
+                {
+                    _logger?.LogError(LogScope.FormatMessage("[YuantaBrokerClient] UnsubscribeBest5 blocked: quote server not connected yet."));
+                    return;
+                }
+            }
+
+            _logger?.LogInformation(LogScope.FormatMessage($"[YuantaBrokerClient] Unsubscribing best5 from {symbol}..."));
+
+            var list = new List<FiveTickA>
+            {
+                new FiveTickA
+                {
+                    MarketNo = (byte)enumMarketType.TWSE,
+                    StockCode = symbol
+                }
+            };
+
+            _trader.UnsubscribeFivetickA(list);
         }
 
         public void Dispose()

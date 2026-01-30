@@ -47,6 +47,18 @@ namespace AiStockAdvisor.Infrastructure.Yuanta
         void SubscribeStockTick(List<StockTick> reqList);
 
         /// <summary>
+        /// 訂閱股票清單的最佳五檔報價。
+        /// </summary>
+        /// <param name="reqList">包含欲訂閱股票的 <see cref="FiveTickA"/> 物件清單。</param>
+        void SubscribeFiveTickA(List<FiveTickA> reqList);
+
+        /// <summary>
+        /// 取消訂閱股票清單的最佳五檔報價。
+        /// </summary>
+        /// <param name="reqList">包含欲取消訂閱股票的 <see cref="FiveTickA"/> 物件清單。</param>
+        void UnsubscribeFivetickA(List<FiveTickA> reqList);
+
+        /// <summary>
         /// 關閉與 API 的連線。
         /// </summary>
         void Close();

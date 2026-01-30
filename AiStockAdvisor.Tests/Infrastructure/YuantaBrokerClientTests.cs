@@ -70,6 +70,19 @@ namespace AiStockAdvisor.Tests.Infrastructure
         }
 
         [Fact]
+        public void SubscribeBest5_ShouldCallSubscribeFiveTickAOnAdapter_WithCorrectSymbol()
+        {
+            string symbol = "2330";
+
+            _client.SubscribeBest5(symbol);
+
+            _adapter.Received(1).SubscribeFiveTickA(Arg.Is<List<FiveTickA>>(x =>
+                x.Count == 1 &&
+                x[0].StockCode == "2330" &&
+                x[0].MarketNo == (byte)enumMarketType.TWSE));
+        }
+
+        [Fact]
         public void Constructor_ShouldDisablePopUps()
         {
             // Assert
@@ -199,6 +212,81 @@ namespace AiStockAdvisor.Tests.Infrastructure
             _adapter.OnResponse += Raise.Event<OnResponseEventHandler>(2, (uint)0, "210.10.40.10", (object)null, (object)data);
 
             Assert.Equal(1, receivedCount);
+        }
+
+        [Fact]
+        public void OnResponse_ShouldParseBest5_WhenIndexIs50()
+        {
+            Best5Quote received = null;
+            _client.OnBest5Received += quote => received = quote;
+
+            byte[] data = new byte[116];
+            int offset = 0;
+
+            // key 22 bytes
+            offset += 22;
+
+            // marketNo
+            data[offset++] = (byte)enumMarketType.TWSE;
+
+            // stock code
+            var symbolBytes = System.Text.Encoding.ASCII.GetBytes("2330");
+            Array.Copy(symbolBytes, 0, data, offset, symbolBytes.Length);
+            offset += 12;
+
+            // index flag = 50
+            data[offset++] = 50;
+
+            int[] bidPrices = { 10000, 9900, 9800, 9700, 9600 };
+            uint[] bidVols = { 10, 11, 12, 13, 14 };
+            int[] askPrices = { 10100, 10200, 10300, 10400, 10500 };
+            uint[] askVols = { 20, 21, 22, 23, 24 };
+
+            void WriteInt(int value)
+            {
+                data[offset++] = (byte)((value >> 24) & 0xFF);
+                data[offset++] = (byte)((value >> 16) & 0xFF);
+                data[offset++] = (byte)((value >> 8) & 0xFF);
+                data[offset++] = (byte)(value & 0xFF);
+            }
+
+            void WriteUInt(uint value)
+            {
+                data[offset++] = (byte)((value >> 24) & 0xFF);
+                data[offset++] = (byte)((value >> 16) & 0xFF);
+                data[offset++] = (byte)((value >> 8) & 0xFF);
+                data[offset++] = (byte)(value & 0xFF);
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+                WriteInt(bidPrices[i]);
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+                WriteUInt(bidVols[i]);
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+                WriteInt(askPrices[i]);
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+                WriteUInt(askVols[i]);
+            }
+
+            _adapter.OnResponse += Raise.Event<OnResponseEventHandler>(2, (uint)0, "210.10.60.10", (object)null, (object)data);
+
+            Assert.NotNull(received);
+            Assert.Equal("2330", received.Symbol);
+            Assert.Equal((int)enumMarketType.TWSE, received.MarketNo);
+            Assert.Equal(100.00m, received.Bids[0].Price);
+            Assert.Equal(10, received.Bids[0].Volume);
+            Assert.Equal(101.00m, received.Asks[0].Price);
+            Assert.Equal(20, received.Asks[0].Volume);
         }
     }
 }

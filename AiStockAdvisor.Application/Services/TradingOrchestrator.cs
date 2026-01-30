@@ -51,6 +51,7 @@ namespace AiStockAdvisor.Application.Services
                 // For now, simple call flow.
                 
                 _broker.Subscribe(symbol);
+                _broker.SubscribeBest5(symbol);
             }
         }
 

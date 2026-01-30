@@ -19,11 +19,28 @@ namespace AiStockAdvisor.Domain
         /// 當接收到即時成交數據時觸發的事件。
         /// </summary>
         event Action<Tick> OnTickReceived;
+
+        /// <summary>
+        /// 當接收到最佳五檔報價時觸發的事件。
+        /// </summary>
+        event Action<Best5Quote> OnBest5Received;
         
         /// <summary>
         /// 訂閱特定股票代碼的即時成交數據 (Ticks)。
         /// </summary>
         /// <param name="symbol">要訂閱的股票代碼 (例如: "2330")。</param>
         void Subscribe(string symbol);
+
+        /// <summary>
+        /// 訂閱特定股票代碼的最佳五檔報價。
+        /// </summary>
+        /// <param name="symbol">要訂閱的股票代碼 (例如: "2330")。</param>
+        void SubscribeBest5(string symbol);
+
+        /// <summary>
+        /// 取消訂閱特定股票代碼的最佳五檔報價。
+        /// </summary>
+        /// <param name="symbol">要取消訂閱的股票代碼 (例如: "2330")。</param>
+        void UnsubscribeBest5(string symbol);
     }
 }
