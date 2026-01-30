@@ -3,6 +3,8 @@ using System.Threading;
 using AiStockAdvisor.Domain;
 using AiStockAdvisor.Infrastructure.Yuanta;
 using AiStockAdvisor.Infrastructure.Logging;
+using AiStockAdvisor.Infrastructure.Messaging;
+using AiStockAdvisor.Infrastructure.Configuration;
 using AiStockAdvisor.Application.Services;
 using AiStockAdvisor.Application.Interfaces;
 using AiStockAdvisor.Logging;
@@ -22,6 +24,13 @@ namespace AiStockAdvisor.ConsoleUI
         [STAThread]
         static void Main(string[] args)
         {
+            // 從 .env 檔案載入環境變數
+            var envCount = DotEnvLoader.Load();
+            if (envCount > 0)
+            {
+                Console.WriteLine($"Loaded {envCount} variables from .env file.");
+            }
+
             Console.WriteLine("Starting AiStockAdvisor...");
 
             try
@@ -34,6 +43,13 @@ namespace AiStockAdvisor.ConsoleUI
                 {
                     IBrokerClient broker = new YuantaBrokerClient(logger);
                     TradingOrchestrator orchestrator = new TradingOrchestrator(broker, logger);
+
+                    // 建立 RabbitMQ Publisher (從環境變數讀取設定，或使用預設值)
+                    // 設定環境變數 RABBITMQ_ENABLED=false 可禁用發布
+                    var tickPublisher = TickPublisherFactory.Create(logger: logger);
+                    
+                    // 訂閱 Tick 事件並發布到 RabbitMQ
+                    broker.OnTickReceived += tick => tickPublisher.Publish(tick);
 
                     // Register Strategies
                     orchestrator.RegisterStrategy(new MaCrossStrategy(logger, shortPeriod: 2, longPeriod: 5));
@@ -62,6 +78,7 @@ namespace AiStockAdvisor.ConsoleUI
                             var key = Console.ReadKey(true);
                             if (key.Key == ConsoleKey.Q)
                             {
+                                tickPublisher.Close();
                                 (broker as IDisposable)?.Dispose();
                                 break;
                             }
