@@ -53,14 +53,6 @@ namespace AiStockAdvisor.Infrastructure.Messaging
                 _connection = factory.CreateConnection();
                 _channel = _connection.CreateModel();
 
-                // 宣告 Exchange (如果不存在)
-                _channel.ExchangeDeclare(
-                    exchange: _config.ExchangeName,
-                    type: ExchangeType.Topic,
-                    durable: true,
-                    autoDelete: false,
-                    arguments: null);
-
                 _logger?.LogInformation($"[RabbitMqTickPublisher] Connected to {_config.Host}:{_config.Port}, exchange: {_config.ExchangeName}");
             }
             catch (Exception ex)
