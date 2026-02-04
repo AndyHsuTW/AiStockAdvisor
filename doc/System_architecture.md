@@ -33,7 +33,7 @@ flowchart LR
 
 - Exchange: `stock-ex`（type=direct, durable）
 - Queue: `work-queue`（durable classic）
-- Binding: `stock-ex` -> `work-queue`（routing_key=`work-queue`）
+- Binding: `stock-ex` -> `work-queue`（routing_key=`stock.twse.tick`）
 
 建立指令：
 
@@ -45,5 +45,5 @@ rabbitmqadmin -H 192.168.0.43 -P 15672 -u admin -p <PASS> \
   declare queue name=work-queue durable=true
 
 rabbitmqadmin -H 192.168.0.43 -P 15672 -u admin -p <PASS> \
-  declare binding source=stock-ex destination=work-queue routing_key=work-queue
+  declare binding source=stock-ex destination=work-queue routing_key=stock.twse.tick
 ```

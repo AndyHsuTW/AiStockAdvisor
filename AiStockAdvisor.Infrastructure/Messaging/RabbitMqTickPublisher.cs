@@ -89,8 +89,8 @@ namespace AiStockAdvisor.Infrastructure.Messaging
                     return;
                 }
 
-                var message = TickMessage.FromTick(tick, buyPriceRaw, sellPriceRaw, inOutFlag, tickType);
-                var json = message.ToJson();
+                var message = TickMessageMapper.FromTick(tick, buyPriceRaw, sellPriceRaw, inOutFlag, tickType);
+                var json = TickMessageMapper.ToJson(message);
                 var body = Encoding.UTF8.GetBytes(json);
 
                 var properties = _channel.CreateBasicProperties();

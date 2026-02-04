@@ -21,6 +21,7 @@
     </PackageReference>
     <PackageReference Include="NSubstitute" Version="5.1.0" /> 
     <!-- NSubstitute is great for TDD mocking -->
+    <PackageReference Include="System.Text.Json" Version="8.0.0" />
   </ItemGroup>
   
   <ItemGroup>
@@ -34,6 +35,7 @@
     <ProjectReference Include="..\AiStockAdvisor.Domain\AiStockAdvisor.Domain.csproj" />
     <ProjectReference Include="..\AiStockAdvisor.Application\AiStockAdvisor.Application.csproj" />
     <ProjectReference Include="..\AiStockAdvisor.Infrastructure\AiStockAdvisor.Infrastructure.csproj" />
+    <ProjectReference Include="..\AiStockAdvisor.Contracts\AiStockAdvisor.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiStockAdvisor.ConsoleUI", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiStockAdvisor.Tests", "AiStockAdvisor.Tests\AiStockAdvisor.Tests.csproj", "{2502387D-AB86-4C6C-BCA2-01AAE1C9A6FB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiStockAdvisor.Contracts", "AiStockAdvisor.Contracts\AiStockAdvisor.Contracts.csproj", "{1439B161-D734-489A-9FB2-810B214FBC67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{2502387D-AB86-4C6C-BCA2-01AAE1C9A6FB}.Release|x64.Build.0 = Release|Any CPU
 		{2502387D-AB86-4C6C-BCA2-01AAE1C9A6FB}.Release|x86.ActiveCfg = Release|Any CPU
 		{2502387D-AB86-4C6C-BCA2-01AAE1C9A6FB}.Release|x86.Build.0 = Release|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Debug|x64.Build.0 = Debug|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Debug|x86.Build.0 = Debug|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Release|x64.ActiveCfg = Release|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Release|x64.Build.0 = Release|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Release|x86.ActiveCfg = Release|Any CPU
+		{1439B161-D734-489A-9FB2-810B214FBC67}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

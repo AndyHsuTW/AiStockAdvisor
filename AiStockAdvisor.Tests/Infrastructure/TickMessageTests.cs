@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using AiStockAdvisor.Domain;
 using AiStockAdvisor.Infrastructure.Messaging;
 using Xunit;
@@ -20,7 +19,7 @@ namespace AiStockAdvisor.Tests.Infrastructure
             var tick = new Tick("2330", tickTime, 222.50m, 100, 1, 12345, tradeDate);
 
             // Act
-            var message = TickMessage.FromTick(tick);
+            var message = TickMessageMapper.FromTick(tick);
 
             // Assert
             Assert.Equal("2026-01-30", message.TradeDate);
@@ -31,7 +30,7 @@ namespace AiStockAdvisor.Tests.Infrastructure
             Assert.Equal(9, message.TickTime.Hour);
             Assert.Equal(30, message.TickTime.Minute);
             Assert.Equal(15, message.TickTime.Second);
-            Assert.Equal(123, message.TickTime.Msec);
+            Assert.Equal(123, message.TickTime.Millisecond);
             Assert.Equal(22250, message.DealPriceRaw); // 222.50 * 100
             Assert.Equal(100, message.DealVolRaw);
         }
@@ -45,7 +44,7 @@ namespace AiStockAdvisor.Tests.Infrastructure
             var tick = new Tick("2327", tickTime, 150.00m, 50, 2, 1, tradeDate);
 
             // Act
-            var message = TickMessage.FromTick(tick, buyPriceRaw: 14990, sellPriceRaw: 15010, inOutFlag: 1, tickType: 0);
+            var message = TickMessageMapper.FromTick(tick, buyPriceRaw: 14990, sellPriceRaw: 15010, inOutFlag: 1, tickType: 0);
 
             // Assert
             Assert.Equal(14990, message.BuyPriceRaw);
@@ -61,10 +60,10 @@ namespace AiStockAdvisor.Tests.Infrastructure
             var tradeDate = new DateTime(2026, 1, 30);
             var tickTime = tradeDate.AddHours(9).AddMinutes(0).AddSeconds(1).AddMilliseconds(123);
             var tick = new Tick("2330", tickTime, 222.50m, 1, 1, 1, tradeDate);
-            var message = TickMessage.FromTick(tick, buyPriceRaw: 22250, sellPriceRaw: 22260, inOutFlag: 0, tickType: 0);
+            var message = TickMessageMapper.FromTick(tick, buyPriceRaw: 22250, sellPriceRaw: 22260, inOutFlag: 0, tickType: 0);
 
             // Act
-            var json = message.ToJson();
+            var json = TickMessageMapper.ToJson(message);
 
             // Assert - 驗證 JSON 格式符合接收服務期望
             Assert.Contains("\"tradeDate\":\"2026-01-30\"", json);
@@ -92,10 +91,10 @@ namespace AiStockAdvisor.Tests.Infrastructure
             var tradeDate = DateTime.Parse("2026-01-30");
             var tickTime = tradeDate.AddHours(9).AddMinutes(0).AddSeconds(1).AddMilliseconds(123);
             var tick = new Tick("2330", tickTime, 222.50m, 1, 1, 1, tradeDate);
-            var message = TickMessage.FromTick(tick, buyPriceRaw: 22250, sellPriceRaw: 22260, inOutFlag: 0, tickType: 0);
+            var message = TickMessageMapper.FromTick(tick, buyPriceRaw: 22250, sellPriceRaw: 22260, inOutFlag: 0, tickType: 0);
 
             // Act
-            var json = message.ToJson();
+            var json = TickMessageMapper.ToJson(message);
 
             // Assert - 驗證完整 JSON 結構
             Assert.StartsWith("{", json);
@@ -116,8 +115,8 @@ namespace AiStockAdvisor.Tests.Infrastructure
             var tick = new Tick("TEST\"SYMBOL", tickTime, 100.00m, 10, 1, 1, tradeDate);
 
             // Act
-            var message = TickMessage.FromTick(tick);
-            var json = message.ToJson();
+            var message = TickMessageMapper.FromTick(tick);
+            var json = TickMessageMapper.ToJson(message);
 
             // Assert - 雙引號應該被跳脫
             Assert.Contains("\\\"", json);

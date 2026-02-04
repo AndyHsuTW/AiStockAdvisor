@@ -15,6 +15,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AiStockAdvisor.Contracts" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="YuantaOneAPI">
       <HintPath>..\..\YuantaOneAPI.dll</HintPath>
       <Private>True</Private> 
