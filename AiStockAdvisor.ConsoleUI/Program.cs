@@ -55,7 +55,8 @@ namespace AiStockAdvisor.ConsoleUI
                     orchestrator.RegisterStrategy(new MaCrossStrategy(logger, shortPeriod: 2, longPeriod: 5));
 
                     // Start
-                    string symbol = "2327"; // YAGEO (Updated by user)
+                    string[] symbols = StockConfig.GetSymbols();
+                    Console.WriteLine($"Subscribing to: {string.Join(", ", symbols)}");
                     
                     Console.Write("Enter Yuanta Account (ID): ");
                     string username = Console.ReadLine();
@@ -64,7 +65,7 @@ namespace AiStockAdvisor.ConsoleUI
                     // Simple password reading (masking skipped for simplicity in console demo)
                     string password = Console.ReadLine();
 
-                    orchestrator.Start(symbol, username, password);
+                    orchestrator.Start(symbols, username, password);
                     
                     Console.WriteLine("System running. Press 'Q' to quit.");
 

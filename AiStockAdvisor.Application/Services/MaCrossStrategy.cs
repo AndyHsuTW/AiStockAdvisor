@@ -15,7 +15,8 @@ namespace AiStockAdvisor.Application.Services
     {
         private readonly int _shortPeriod;
         private readonly int _longPeriod;
-        private readonly List<decimal> _closePrices = new List<decimal>();
+        private readonly Dictionary<string, List<decimal>> _closePricesBySymbol
+            = new Dictionary<string, List<decimal>>();
         private readonly ILogger _logger;
 
         public string Name => "MA Cross Strategy";
@@ -34,33 +35,43 @@ namespace AiStockAdvisor.Application.Services
 
         public void OnBar(KBar bar)
         {
-            _logger.LogInformation(LogScope.FormatMessage($"[{Name}] Received Bar: {bar}"));
-            
-            _closePrices.Add(bar.Close);
+            var symbol = bar.Symbol;
+            _logger.LogInformation(LogScope.FormatMessage($"[{Name}][{symbol}] Received Bar: {bar}"));
+
+            if (!_closePricesBySymbol.TryGetValue(symbol, out var closePrices))
+            {
+                closePrices = new List<decimal>();
+                _closePricesBySymbol[symbol] = closePrices;
+            }
+
+            closePrices.Add(bar.Close);
 
             // Simple MA calculation
-            if (_closePrices.Count >= _longPeriod)
+            if (closePrices.Count >= _longPeriod)
             {
-                var shortMa = CalculateMa(_shortPeriod);
-                var longMa = CalculateMa(_longPeriod);
+                var shortMa = CalculateMa(closePrices, _shortPeriod);
+                var longMa = CalculateMa(closePrices, _longPeriod);
                 
-                _logger.LogInformation(LogScope.FormatMessage($"[{Name}] MA{_shortPeriod}: {shortMa:F2}, MA{_longPeriod}: {longMa:F2}"));
+                _logger.LogInformation(LogScope.FormatMessage(
+                    $"[{Name}][{symbol}] MA{_shortPeriod}: {shortMa:F2}, MA{_longPeriod}: {longMa:F2}"));
 
                 // Logic: Golden Cross logic could go here
                 if (shortMa > longMa)
                 {
-                    _logger.LogInformation(LogScope.FormatMessage($"[{Name}] Signal: BULLISH (MA{_shortPeriod} > MA{_longPeriod})"));
+                    _logger.LogInformation(LogScope.FormatMessage(
+                        $"[{Name}][{symbol}] Signal: BULLISH (MA{_shortPeriod} > MA{_longPeriod})"));
                 }
                 else
                 {
-                    _logger.LogInformation(LogScope.FormatMessage($"[{Name}] Signal: BEARISH (MA{_shortPeriod} < MA{_longPeriod})"));
+                    _logger.LogInformation(LogScope.FormatMessage(
+                        $"[{Name}][{symbol}] Signal: BEARISH (MA{_shortPeriod} < MA{_longPeriod})"));
                 }
             }
         }
 
-        private decimal CalculateMa(int period)
+        private decimal CalculateMa(List<decimal> prices, int period)
         {
-            return _closePrices.Skip(_closePrices.Count - period).Take(period).Average();
+            return prices.Skip(prices.Count - period).Take(period).Average();
         }
     }
 }

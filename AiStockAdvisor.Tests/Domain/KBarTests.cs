@@ -18,7 +18,7 @@ namespace AiStockAdvisor.Tests.Domain
             decimal volume = 1000;
 
             // Act & Assert
-            Assert.Throws<ArgumentException>(() => new KBar(time, open, high, low, close, volume));
+            Assert.Throws<ArgumentException>(() => new KBar("2327", time, open, high, low, close, volume));
         }
 
         [Fact]
@@ -33,11 +33,22 @@ namespace AiStockAdvisor.Tests.Domain
             decimal volume = 1000;
 
             // Act
-            var kbar = new KBar(time, open, high, low, close, volume);
+            var kbar = new KBar("2327", time, open, high, low, close, volume);
 
             // Assert
+            Assert.Equal("2327", kbar.Symbol);
             Assert.Equal(high, kbar.High);
             Assert.Equal(low, kbar.Low);
+        }
+
+        [Fact]
+        public void Constructor_ShouldThrowArgumentNullException_WhenSymbolIsNull()
+        {
+            // Arrange
+            var time = DateTime.Now;
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => new KBar(null!, time, 100, 105, 95, 102, 1000));
         }
     }
 }

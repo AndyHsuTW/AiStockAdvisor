@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using AiStockAdvisor.Domain;
 using AiStockAdvisor.Application.Interfaces;
@@ -13,7 +14,8 @@ namespace AiStockAdvisor.Application.Services
     public class TradingOrchestrator
     {
         private readonly IBrokerClient _broker;
-        private readonly KBarGenerator _kBarGenerator;
+        private readonly ConcurrentDictionary<string, KBarGeneratorState> _kBarGenerators;
+        private readonly TimeSpan _barPeriod;
         private readonly List<ITradingStrategy> _strategies;
         private readonly ILogger _logger;
         private string? _flowLogId;
@@ -23,12 +25,38 @@ namespace AiStockAdvisor.Application.Services
         {
             _broker = broker;
             _logger = logger;
-            _kBarGenerator = new KBarGenerator(TimeSpan.FromMinutes(1)); // Default 1 min
+            _barPeriod = TimeSpan.FromMinutes(1);
+            _kBarGenerators = new ConcurrentDictionary<string, KBarGeneratorState>();
             _strategies = new List<ITradingStrategy>();
 
             // Wire up events
             _broker.OnTickReceived += HandleTick;
-            _kBarGenerator.OnBarClosed += HandleBar;
+        }
+
+        /// <summary>
+        /// 單一股票 KBar 聚合所需的狀態與同步鎖。
+        /// </summary>
+        private sealed class KBarGeneratorState
+        {
+            /// <summary>
+            /// 初始化 <see cref="KBarGeneratorState"/> 類別的新執行個體。
+            /// </summary>
+            /// <param name="generator">股票專屬的 KBar 產生器。</param>
+            public KBarGeneratorState(KBarGenerator generator)
+            {
+                Generator = generator;
+                SyncRoot = new object();
+            }
+
+            /// <summary>
+            /// 取得股票專屬的 KBar 產生器。
+            /// </summary>
+            public KBarGenerator Generator { get; }
+
+            /// <summary>
+            /// 取得股票專屬更新鎖物件。
+            /// </summary>
+            public object SyncRoot { get; }
         }
 
         public void RegisterStrategy(ITradingStrategy strategy)
@@ -37,21 +65,47 @@ namespace AiStockAdvisor.Application.Services
             _logger.LogInformation(LogScope.FormatMessage($"[Orchestrator] Registered strategy: {strategy.Name}"));
         }
 
-        public void Start(string symbol, string username, string password)
+        /// <summary>
+        /// 啟動交易流程，訂閱指定的多檔股票。
+        /// </summary>
+        /// <param name="symbols">股票代碼清單。</param>
+        /// <param name="username">元大帳號。</param>
+        /// <param name="password">密碼。</param>
+        public void Start(string[] symbols, string username, string password)
         {
             _flowLogId = Guid.NewGuid().ToString();
             _flowSpanId = Guid.NewGuid().ToString();
             using (LogScope.Use(_flowLogId, _flowSpanId))
             {
-                _logger.LogInformation(LogScope.FormatMessage($"[Orchestrator] Starting trading flow for {symbol}..."));
+                _logger.LogInformation(LogScope.FormatMessage(
+                    $"[Orchestrator] Starting trading flow for {string.Join(", ", symbols)}..."));
                 _broker.Login(username, password);
-                
-                // Wait for login? In real app, need event. Here assuming synchronous enough or retry.
-                // But Broker.Login() is async in nature usually.
-                // For now, simple call flow.
-                
-                _broker.Subscribe(symbol);
-                _broker.SubscribeBest5(symbol);
+
+                foreach (var rawSymbol in symbols)
+                {
+                    if (string.IsNullOrWhiteSpace(rawSymbol))
+                    {
+                        _logger.LogWarning(LogScope.FormatMessage("[Orchestrator] Skipped empty symbol."));
+                        continue;
+                    }
+
+                    var symbol = rawSymbol.Trim();
+                    var gen = new KBarGenerator(symbol, _barPeriod);
+                    gen.OnBarClosed += HandleBar;
+
+                    if (!_kBarGenerators.TryAdd(symbol, new KBarGeneratorState(gen)))
+                    {
+                        _logger.LogWarning(LogScope.FormatMessage(
+                            $"[Orchestrator] Skipped duplicate symbol: {symbol}"));
+                        continue;
+                    }
+
+                    _broker.Subscribe(symbol);
+                    _broker.SubscribeBest5(symbol);
+
+                    _logger.LogInformation(LogScope.FormatMessage(
+                        $"[Orchestrator] Subscribed to {symbol}"));
+                }
             }
         }
 
@@ -59,10 +113,18 @@ namespace AiStockAdvisor.Application.Services
         {
             using (LogScope.Use(_flowLogId, _flowSpanId))
             {
-                // Update KBar Generator
-                using (LogScope.BeginBranch())
+                // 依 tick.Symbol 路由到對應的 KBarGenerator
+                var symbol = tick.Symbol?.Trim();
+                if (symbol is { Length: > 0 } normalizedSymbol &&
+                    _kBarGenerators.TryGetValue(normalizedSymbol, out var state))
                 {
-                    _kBarGenerator.Update(tick);
+                    using (LogScope.BeginBranch())
+                    {
+                        lock (state.SyncRoot)
+                        {
+                            state.Generator.Update(tick);
+                        }
+                    }
                 }
 
                 // Pass to strategies if they need ticks

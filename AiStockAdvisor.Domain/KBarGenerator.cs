@@ -10,6 +10,7 @@ namespace AiStockAdvisor.Domain
     {
         private KBar _currentBar;
         private readonly TimeSpan _period;
+        private readonly string _symbol;
 
         /// <summary>
         /// 當 K 線完成 (Close) 時觸發的事件。
@@ -19,9 +20,11 @@ namespace AiStockAdvisor.Domain
         /// <summary>
         /// 初始化 <see cref="KBarGenerator"/> 類別的新執行個體。
         /// </summary>
+        /// <param name="symbol">股票代碼。</param>
         /// <param name="period">K 線週期 (預設 1 分鐘)。</param>
-        public KBarGenerator(TimeSpan period)
+        public KBarGenerator(string symbol, TimeSpan period)
         {
+            _symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
             _period = period;
         }
 
@@ -67,8 +70,7 @@ namespace AiStockAdvisor.Domain
 
         private void CreateNewBar(DateTime endTime, Tick tick)
         {
-            // Open, High, Low, Close, Volume
-            _currentBar = new KBar(endTime, tick.Price, tick.Price, tick.Price, tick.Price, tick.Volume);
+            _currentBar = new KBar(_symbol, endTime, tick.Price, tick.Price, tick.Price, tick.Price, tick.Volume);
         }
 
         private void UpdateCurrentBar(Tick tick)
@@ -81,7 +83,7 @@ namespace AiStockAdvisor.Domain
             // KBar is immutable, so create a new instance (Value Object pattern)
             // Or technically KBar should be mutable during formation? 
             // For safety, treating it as immutable value object replacement.
-            _currentBar = new KBar(_currentBar.Time, _currentBar.Open, newHigh, newLow, newClose, newVolume);
+            _currentBar = new KBar(_symbol, _currentBar.Time, _currentBar.Open, newHigh, newLow, newClose, newVolume);
         }
     }
 }

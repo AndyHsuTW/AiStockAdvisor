@@ -101,9 +101,16 @@ namespace AiStockAdvisor.Infrastructure.Messaging
 
                 lock (_lock)
                 {
+                    // 依 symbol 動態產生 RoutingKey，支援 topic exchange 萬用字元訂閱
+                    var dynamicRoutingEnabled = System.Environment.GetEnvironmentVariable("RABBITMQ_DYNAMIC_ROUTING");
+                    var routingKey = !string.IsNullOrEmpty(dynamicRoutingEnabled) &&
+                                    (dynamicRoutingEnabled.Equals("true", StringComparison.OrdinalIgnoreCase) || dynamicRoutingEnabled == "1")
+                        ? $"stock.{tick.MarketNo}.tick.{tick.Symbol}"
+                        : _config.RoutingKey;
+
                     _channel.BasicPublish(
                         exchange: _config.ExchangeName,
-                        routingKey: _config.RoutingKey,
+                        routingKey: routingKey,
                         basicProperties: properties,
                         body: body);
                 }
