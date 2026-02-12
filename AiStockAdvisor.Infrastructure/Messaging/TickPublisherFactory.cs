@@ -19,6 +19,7 @@ namespace AiStockAdvisor.Infrastructure.Messaging
         public static ITickPublisher Create(RabbitMqConfig? config = null, ILogger? logger = null)
         {
             config = config ?? RabbitMqConfig.FromEnvironment();
+            PublisherConsumeGuard.EnsureNoConsumeConfiguration();
 
             if (!config.Enabled)
             {
@@ -52,6 +53,8 @@ namespace AiStockAdvisor.Infrastructure.Messaging
             string password,
             ILogger? logger = null)
         {
+            PublisherConsumeGuard.EnsureNoConsumeConfiguration();
+
             var config = new RabbitMqConfig
             {
                 Host = host,

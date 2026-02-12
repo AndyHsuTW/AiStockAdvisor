@@ -23,6 +23,7 @@
       <HintPath>..\..\YuantaOneAPI.dll</HintPath>
       <Private>True</Private> 
     </Reference>
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
   <ItemGroup>

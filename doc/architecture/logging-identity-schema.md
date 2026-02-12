@@ -1,3 +1,10 @@
+```text
++------------+    +----------+    +-----------+    +----------+
+| tradeDate  | +  | marketNo | +  | stockCode | +  | serialNo |
++------------+    +----------+    +-----------+    +----------+
+         \____________________ flowId _____________________/
+```
+
 # Log Identity Schema (Tick vs. Non-Tick)
 
 Purpose

@@ -4,7 +4,7 @@
 > **建立日期**: 2026-01-31  
 > **最後更新**: 2026-01-31  
 > **狀態**: ✅ 需求確認完成，準備開發  
-> **參考文件**: [基於C#的主動型 AI 股票預測分析交易系統規劃報告](基於C%23的主動型%20AI%20股票預測分析交易系統規劃報告.pdf)
+> **參考文件**: [基於C#的主動型 AI 股票預測分析交易系統規劃報告](/doc/archive/reports/legacy-ai-trading-report.pdf)
 
 ---
 
@@ -130,7 +130,7 @@ flowchart TB
 
 ### 2.2 五層模組功能對照表
 
-根據 [規劃報告](基於C%23的主動型%20AI%20股票預測分析交易系統規劃報告.pdf) 定義的模組架構：
+根據 [規劃報告](/doc/archive/reports/legacy-ai-trading-report.pdf) 定義的模組架構：
 
 | 模組 | 功能與責任 | 資料更新頻率/通訊方式 | 實作狀態 |
 |------|------------|----------------------|----------|
@@ -356,7 +356,7 @@ SELECT add_retention_policy('ticks', INTERVAL '5 years');
 
 ### 4.1 模型方案總覽
 
-根據 [規劃報告](基於C%23的主動型%20AI%20股票預測分析交易系統規劃報告.pdf) 建議，採用混合模型策略：
+根據 [規劃報告](/doc/archive/reports/legacy-ai-trading-report.pdf) 建議，採用混合模型策略：
 
 | 模型類型 | 適用場景 | 所需資料 | 優點 | 缺點 |
 |----------|----------|----------|------|------|
@@ -590,7 +590,7 @@ class TradingEnvironment:
 
 ### 5.3 AI 增強技術指標
 
-根據 [規劃報告](基於C%23的主動型%20AI%20股票預測分析交易系統規劃報告.pdf) 建議，應用 AI 提升傳統指標的使用效能：
+根據 [規劃報告](/doc/archive/reports/legacy-ai-trading-report.pdf) 建議，應用 AI 提升傳統指標的使用效能：
 
 #### 🎯 參數自適應優化
 
@@ -909,7 +909,7 @@ public class SimulatedOrderExecutor : IOrderExecutor
 
 ## 8. 即時修正與回測機制
 
-根據 [規劃報告](基於C%23的主動型%20AI%20股票預測分析交易系統規劃報告.pdf) 第 5 章設計的閉環校正機制。
+根據 [規劃報告](/doc/archive/reports/legacy-ai-trading-report.pdf) 第 5 章設計的閉環校正機制。
 
 ### 8.1 盤中即時修正 (Real-time Correction)
 
@@ -1131,7 +1131,7 @@ models:
 
 ## 9. 資料缺口評估與補充策略
 
-根據 [規劃報告](基於C%23的主動型%20AI%20股票預測分析交易系統規劃報告.pdf) 第 3 章的資料完整性評估。
+根據 [規劃報告](/doc/archive/reports/legacy-ai-trading-report.pdf) 第 3 章的資料完整性評估。
 
 ### 9.1 潛在資料缺口
 
@@ -1499,7 +1499,7 @@ flowchart LR
 
 ## 附錄 D：規劃報告參考對照
 
-本計劃基於 [基於C#的主動型 AI 股票預測分析交易系統規劃報告](基於C%23的主動型%20AI%20股票預測分析交易系統規劃報告.pdf) 整理：
+本計劃基於 [基於C#的主動型 AI 股票預測分析交易系統規劃報告](/doc/archive/reports/legacy-ai-trading-report.pdf) 整理：
 
 | 報告章節 | 本計劃對應章節 | 整合狀態 |
 |----------|---------------|----------|
@@ -1512,3 +1512,4 @@ flowchart LR
 ---
 
 *文件結束 - v2.1*
+

@@ -8,6 +8,7 @@ using NSubstitute;
 using AiStockAdvisor.Domain;
 using AiStockAdvisor.Application.Services;
 using AiStockAdvisor.Application.Interfaces;
+using AiStockAdvisor.Application.Models;
 
 namespace AiStockAdvisor.Tests.Application
 {
@@ -175,6 +176,36 @@ namespace AiStockAdvisor.Tests.Application
 
             // Assert
             Assert.Null(ex);
+        }
+
+        [Fact]
+        public void HandleTick_WhenSerialNoGapDetected_ShouldNotifyGapAlertService()
+        {
+            // Arrange
+            var broker = Substitute.For<IBrokerClient>();
+            var logger = Substitute.For<ILogger>();
+            var alertService = Substitute.For<IGapAlertService>();
+            var detector = new TickGapDetector();
+            var orchestrator = new TradingOrchestrator(broker, logger, detector, alertService);
+
+            orchestrator.Start(new[] { "2327" }, "user", "pass");
+
+            var t0 = new DateTime(2026, 2, 11, 9, 0, 0);
+            var tradeDate = t0.Date;
+
+            // Act
+            broker.OnTickReceived += Raise.Event<Action<Tick>>(
+                new Tick("2327", t0, 100m, 1m, marketNo: 1, serialNo: 1, tradeDate: tradeDate));
+            broker.OnTickReceived += Raise.Event<Action<Tick>>(
+                new Tick("2327", t0.AddSeconds(1), 101m, 1m, marketNo: 1, serialNo: 3, tradeDate: tradeDate));
+
+            // Assert
+            alertService.Received(1).NotifySerialNoGap(Arg.Is<SerialNoGapEvent>(x =>
+                x.StockCode == "2327" &&
+                x.PreviousSerialNo == 1 &&
+                x.CurrentSerialNo == 3 &&
+                x.MissingStartSerialNo == 2 &&
+                x.MissingEndSerialNo == 2));
         }
     }
 }

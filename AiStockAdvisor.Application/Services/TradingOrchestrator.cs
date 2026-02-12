@@ -18,16 +18,31 @@ namespace AiStockAdvisor.Application.Services
         private readonly TimeSpan _barPeriod;
         private readonly List<ITradingStrategy> _strategies;
         private readonly ILogger _logger;
+        private readonly TickGapDetector _tickGapDetector;
+        private readonly IGapAlertService? _gapAlertService;
         private string? _flowLogId;
         private string? _flowSpanId;
 
-        public TradingOrchestrator(IBrokerClient broker, ILogger logger)
+        /// <summary>
+        /// 初始化 <see cref="TradingOrchestrator"/> 類別的新執行個體。
+        /// </summary>
+        /// <param name="broker">券商客戶端。</param>
+        /// <param name="logger">日誌服務。</param>
+        /// <param name="tickGapDetector">Tick 缺號偵測器；若為 null 則使用預設實例。</param>
+        /// <param name="gapAlertService">缺號通知服務；可為 null。</param>
+        public TradingOrchestrator(
+            IBrokerClient broker,
+            ILogger logger,
+            TickGapDetector? tickGapDetector = null,
+            IGapAlertService? gapAlertService = null)
         {
             _broker = broker;
             _logger = logger;
             _barPeriod = TimeSpan.FromMinutes(1);
             _kBarGenerators = new ConcurrentDictionary<string, KBarGeneratorState>();
             _strategies = new List<ITradingStrategy>();
+            _tickGapDetector = tickGapDetector ?? new TickGapDetector();
+            _gapAlertService = gapAlertService;
 
             // Wire up events
             _broker.OnTickReceived += HandleTick;
@@ -113,6 +128,24 @@ namespace AiStockAdvisor.Application.Services
         {
             using (LogScope.Use(_flowLogId, _flowSpanId))
             {
+                if (_tickGapDetector.TryDetectGap(tick, out var gapEvent) && gapEvent != null)
+                {
+                    _logger.LogWarning(LogScope.FormatMessage(
+                        $"[SerialNoGap] Detected. stock={gapEvent.StockCode}, prev={gapEvent.PreviousSerialNo}, curr={gapEvent.CurrentSerialNo}, missing={gapEvent.MissingStartSerialNo}-{gapEvent.MissingEndSerialNo} ({gapEvent.MissingCount}), tickTime={gapEvent.TickTime:HH:mm:ss.fff}"));
+
+                    if (_gapAlertService != null)
+                    {
+                        try
+                        {
+                            _gapAlertService.NotifySerialNoGap(gapEvent);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(LogScope.FormatMessage("[SerialNoGap] Failed to send alert."), ex);
+                        }
+                    }
+                }
+
                 // 依 tick.Symbol 路由到對應的 KBarGenerator
                 var symbol = tick.Symbol?.Trim();
                 if (symbol is { Length: > 0 } normalizedSymbol &&

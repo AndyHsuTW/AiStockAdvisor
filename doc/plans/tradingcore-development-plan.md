@@ -278,7 +278,7 @@ await host.RunAsync();
 **參考**
 - 設定檔範例：[附錄 A](#附錄-a-設定檔範例)
 - NuGet 套件：[5. NuGet 套件依賴](#5-nuget-套件依賴)
-- 共用資料模型：[Shared-Contracts-Setup.md](Shared-Contracts-Setup.md)（前置作業）
+- 共用資料模型：[/doc/plans/contracts-shared-models-setup.md](/doc/plans/contracts-shared-models-setup.md)（前置作業）
 
 **驗收條件**
 | 項目 | 標準 |
@@ -302,7 +302,7 @@ await host.RunAsync();
 - [ ] 實作 RabbitMQ 連線與自動重連邏輯 (使用 Polly)
 - [ ] 實作 Tick 訊息反序列化 (複用 `TickMessage`)
 - [ ] 實作背景服務 (`IHostedService`)
-- [ ] 建立 `Tick` Domain 物件轉換（見 [Shared-Contracts-Setup.md § 4.1](Shared-Contracts-Setup.md#41-tick-類別)）
+- [ ] 建立 `Tick` Domain 物件轉換（見 [/doc/plans/contracts-shared-models-setup.md § 4.1](/doc/plans/contracts-shared-models-setup.md#41-tick-類別)）
 - [ ] 單元測試
 
 **實作指引**
@@ -354,9 +354,9 @@ public class TickConsumer : BackgroundService
 ```
 
 **參考**
-- 訊息格式：[Shared-Contracts-Setup.md § 4.3 TickMessage](Shared-Contracts-Setup.md#43-tickmessage-類別)
-- RabbitMQ 設定：[Shared-Contracts-Setup.md § 4.4 RabbitMqConfig](Shared-Contracts-Setup.md#44-rabbitmqconfig-類別)
-- 訊息規格：[stock-tick-response-json-model.md](stock-tick-response-json-model.md)
+- 訊息格式：[/doc/plans/contracts-shared-models-setup.md § 4.3 TickMessage](/doc/plans/contracts-shared-models-setup.md#43-tickmessage-類別)
+- RabbitMQ 設定：[/doc/plans/contracts-shared-models-setup.md § 4.4 RabbitMqConfig](/doc/plans/contracts-shared-models-setup.md#44-rabbitmqconfig-類別)
+- 訊息規格：[/doc/data/stock-tick-response-json-model.md](/doc/data/stock-tick-response-json-model.md)
 
 **驗收條件**
 | 項目 | 標準 |
@@ -446,8 +446,8 @@ public class TimescaleDbProvider : IHistoricalDataProvider
 ```
 
 **參考**
-- 資料庫結構：[timescaledb-migration.md](timescaledb-migration.md)
-- 資料表 DDL：[stock-tick-ddl.sql](stock-tick-ddl.sql)
+- 資料庫結構：[/doc/data/timescaledb-migration.md](/doc/data/timescaledb-migration.md)
+- 資料表 DDL：[/doc/data/stock-tick-ddl.sql](/doc/data/stock-tick-ddl.sql)
 - TimescaleDB 文件：`time_bucket()` 聚合函數
 
 **驗收條件**
@@ -529,7 +529,7 @@ public class SmaIndicatorWrapper : IIndicator
 **參考**
 - NuGet 套件：`Skender.Stock.Indicators` (推薦使用)
 - 套件文件：https://dotnet.stockindicators.dev/
-- 系統規劃：[AI_Trading_System_Development_Plan_v2.md](AI_Trading_System_Development_Plan_v2.md) § 5.技術指標實作規劃
+- 系統規劃：[/doc/plans/ai-trading-system-development-plan.md](/doc/plans/ai-trading-system-development-plan.md) § 5.技術指標實作規劃
 
 **驗收條件**
 | 項目 | 標準 |
@@ -591,7 +591,7 @@ public class IndicatorCalculator
 | ATR(14) | 波動率 | 用於計算停損距離 |
 
 **參考**
-- 系統規劃：[AI_Trading_System_Development_Plan_v2.md](AI_Trading_System_Development_Plan_v2.md) § 5.3 AI增強技術指標
+- 系統規劃：[/doc/plans/ai-trading-system-development-plan.md](/doc/plans/ai-trading-system-development-plan.md) § 5.3 AI增強技術指標
 
 **驗收條件**
 | 項目 | 標準 |
@@ -683,7 +683,7 @@ public class HammerPattern : IPatternRecognizer
 
 **參考**
 - K 線型態圖解：TradingView 內建型態說明
-- 系統規劃：[AI_Trading_System_Development_Plan_v2.md](AI_Trading_System_Development_Plan_v2.md) § 5.1 模組一：K線型態
+- 系統規劃：[/doc/plans/ai-trading-system-development-plan.md](/doc/plans/ai-trading-system-development-plan.md) § 5.1 模組一：K線型態
 
 **驗收條件**
 | 項目 | 標準 |
@@ -711,7 +711,7 @@ public class HammerPattern : IPatternRecognizer
 **實作指引**
 ```csharp
 /// <summary>
-/// 特徵向量定義（參照 AI_Trading_System_Development_Plan_v2.md § 5.4）
+/// 特徵向量定義（參照 /doc/plans/ai-trading-system-development-plan.md § 5.4）
 /// </summary>
 public class FeatureVector
 {
@@ -770,7 +770,7 @@ public class FeatureNormalizer
 ```
 
 **參考**
-- 特徵定義：[AI_Trading_System_Development_Plan_v2.md](AI_Trading_System_Development_Plan_v2.md) § 5.4 特徵向量設計
+- 特徵定義：[/doc/plans/ai-trading-system-development-plan.md](/doc/plans/ai-trading-system-development-plan.md) § 5.4 特徵向量設計
 
 **驗收條件**
 | 項目 | 標準 |
@@ -931,7 +931,7 @@ public class RuleEngine
 ```
 
 **參考**
-- 交易策略：[AI_Trading_System_Development_Plan_v2.md](AI_Trading_System_Development_Plan_v2.md) § 7.交易執行策略
+- 交易策略：[/doc/plans/ai-trading-system-development-plan.md](/doc/plans/ai-trading-system-development-plan.md) § 7.交易執行策略
 
 **驗收條件**
 | 項目 | 標準 |
@@ -2463,18 +2463,18 @@ public class YuantaRealExecutor : IOrderExecutor
 
 | 文件 | 路徑 | 說明 |
 |------|------|------|
-| 系統開發計劃 | [AI_Trading_System_Development_Plan_v2.md](AI_Trading_System_Development_Plan_v2.md) | 整體系統架構與規劃 |
-| TimescaleDB 遷移指南 | [timescaledb-migration.md](timescaledb-migration.md) | 資料庫結構與查詢範例 |
-| Tick 訊息格式 | [stock-tick-response-json-model.md](stock-tick-response-json-model.md) | RabbitMQ 訊息格式 |
-| 日誌機制設計 | [log-mechanism.md](log-mechanism.md) | 日誌格式與追蹤 |
-| RabbitMQ 設計 | [rabbitmq-publisher-design.md](rabbitmq-publisher-design.md) | 訊息佇列設計 |
-| **共用資料模型** | [Shared-Contracts-Setup.md](Shared-Contracts-Setup.md) | **前置作業** - 跨框架共用套件建立指南 |
+| 系統開發計劃 | [/doc/plans/ai-trading-system-development-plan.md](/doc/plans/ai-trading-system-development-plan.md) | 整體系統架構與規劃 |
+| TimescaleDB 遷移指南 | [/doc/data/timescaledb-migration.md](/doc/data/timescaledb-migration.md) | 資料庫結構與查詢範例 |
+| Tick 訊息格式 | [/doc/data/stock-tick-response-json-model.md](/doc/data/stock-tick-response-json-model.md) | RabbitMQ 訊息格式 |
+| 日誌機制設計 | [/doc/architecture/logging-mechanism.md](/doc/architecture/logging-mechanism.md) | 日誌格式與追蹤 |
+| RabbitMQ 設計 | [/doc/messaging/rabbitmq-publisher-design.md](/doc/messaging/rabbitmq-publisher-design.md) | 訊息佇列設計 |
+| **共用資料模型** | [/doc/plans/contracts-shared-models-setup.md](/doc/plans/contracts-shared-models-setup.md) | **前置作業** - 跨框架共用套件建立指南 |
 
 ---
 
 ## 附錄 E: 前置作業說明
 
-> 🔴 **重要**：開發 TradingCore 之前，必須先完成 [Shared-Contracts-Setup.md](Shared-Contracts-Setup.md) 中的任務。
+> 🔴 **重要**：開發 TradingCore 之前，必須先完成 [/doc/plans/contracts-shared-models-setup.md](/doc/plans/contracts-shared-models-setup.md) 中的任務。
 
 ### 為什麼需要前置作業？
 
@@ -2502,8 +2502,10 @@ public class YuantaRealExecutor : IOrderExecutor
 - [ ] ConsoleUI (Publisher) 專案已改用 Contracts 套件
 - [ ] 可在 .NET 8 測試專案中引用 Contracts 套件
 
-詳細步驟請參閱 [Shared-Contracts-Setup.md](Shared-Contracts-Setup.md)。
+詳細步驟請參閱 [/doc/plans/contracts-shared-models-setup.md](/doc/plans/contracts-shared-models-setup.md)。
 
 ---
 
 *文件結束*
+
+

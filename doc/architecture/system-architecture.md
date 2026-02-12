@@ -1,3 +1,9 @@
+```text
++----------+    +-----------+    +----------+    +------------+    +-----------+
+| Producer | -> | stock-ex  | -> | work-q   | -> | DB Writer  | -> | Postgres  |
++----------+    +-----------+    +----------+    +------------+    +-----------+
+```
+
 # 範圍說明
 
 此圖為「全系統架構」示意；
@@ -34,6 +40,7 @@ flowchart LR
 - Exchange: `stock-ex`（type=direct, durable）
 - Queue: `work-queue`（durable classic）
 - Binding: `stock-ex` -> `work-queue`（routing_key=`stock.twse.tick`）
+- Consumer owner: `dbwriter` only（`stock-publisher` 不可 consume）
 
 建立指令：
 

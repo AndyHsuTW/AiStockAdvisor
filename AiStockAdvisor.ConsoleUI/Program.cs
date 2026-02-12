@@ -8,6 +8,7 @@ using AiStockAdvisor.Infrastructure.Configuration;
 using AiStockAdvisor.Application.Services;
 using AiStockAdvisor.Application.Interfaces;
 using AiStockAdvisor.Logging;
+using AiStockAdvisor.Infrastructure.Notifications;
 
 namespace AiStockAdvisor.ConsoleUI
 {
@@ -42,7 +43,13 @@ namespace AiStockAdvisor.ConsoleUI
                 using (var logger = new FileLogger()) 
                 {
                     IBrokerClient broker = new YuantaBrokerClient(logger);
-                    TradingOrchestrator orchestrator = new TradingOrchestrator(broker, logger);
+                    var tickGapDetector = new TickGapDetector();
+                    using var lineAlertService = new LineAlertService(logger);
+                    TradingOrchestrator orchestrator = new TradingOrchestrator(
+                        broker,
+                        logger,
+                        tickGapDetector,
+                        lineAlertService);
 
                     // 建立 RabbitMQ Publisher (從環境變數讀取設定，或使用預設值)
                     // 設定環境變數 RABBITMQ_ENABLED=false 可禁用發布
